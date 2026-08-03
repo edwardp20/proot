@@ -1,0 +1,46 @@
+name: Build Proot for aarch64
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        SECCOMP: [0, 1]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -qq \
+            gcc-aarch64-linux-gnu \
+            g++-aarch64-linux-gnu \
+            libarchive-dev \
+            libtalloc-dev \
+            uthash-dev
+
+      - name: Build
+        env:
+          PROOT_NO_SECCOMP: ${{ matrix.SECCOMP == '0' && '1' || '' }}
+        run: |
+          make -C src loader.elf loader-m32.elf build.h
+          make -C src proot care \
+            CC=aarch64-linux-gnu-gcc \
+            CXX=aarch64-linux-gnu-g++
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: proot-aarch64-${{ matrix.SECCOMP == '1' && 'seccomp' || 'no-seccomp' }}
+          path: |
+            src/proot
+            src/care
+            src/loader.elf
+            src/loader-m32.elf
