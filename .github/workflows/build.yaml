@@ -24,7 +24,10 @@ jobs:
             g++-aarch64-linux-gnu \
             libarchive-dev \
             libtalloc-dev \
-            uthash-dev
+            uthash-dev \
+      - name: Install binutils
+          run: |
+            sudo apt-get install -qq binutils binutils-aarch64-linux-gnu
 
       - name: Build
         env:
@@ -32,8 +35,9 @@ jobs:
         run: |
           make -C src loader.elf loader-m32.elf build.h
           make -C src proot care \
-            CC=aarch64-linux-gnu-gcc \
-            CXX=aarch64-linux-gnu-g++
+          CC=aarch64-linux-gnu-gcc \
+          CXX=aarch64-linux-gnu-g++ \
+
 
       - name: Upload
         uses: actions/upload-artifact@v4
