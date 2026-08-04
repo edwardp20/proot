@@ -45,7 +45,8 @@ jobs:
                 export PROOT_NO_SECCOMP=1
               fi
 
-              make -C src proot care
+              make -C src proot care \
+                  LDFLAGS='-static'
               file src/proot
             "
 
