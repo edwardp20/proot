@@ -16,11 +16,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build in Docker
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Build in aarch64 Docker
         env:
           SECCOMP: ${{ matrix.SECCOMP }}
         run: |
           docker run --rm \
+            --platform linux/arm64 \
             -v $PWD:/workspace \
             -w /workspace \
             -e SECCOMP=$SECCOMP \
@@ -37,14 +41,11 @@ jobs:
                 binutils \
                 file
 
-              # 编译
               if [ \$SECCOMP -eq 0 ]; then
                 export PROOT_NO_SECCOMP=1
               fi
 
               make -C src proot care
-
-              # 检查架构
               file src/proot
             "
 
