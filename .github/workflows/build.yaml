@@ -1,4 +1,4 @@
-name: Build Proot for aarch64
+name: Build Proot for aarch64 (Static)
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      - name: Build in aarch64 Docker
+      - name: Build static proot in Alpine
         env:
           SECCOMP: ${{ matrix.SECCOMP }}
         run: |
@@ -28,26 +28,34 @@ jobs:
             -v $PWD:/workspace \
             -w /workspace \
             -e SECCOMP=$SECCOMP \
-            arm64v8/ubuntu:22.04 \
-            /bin/bash -c "
-              apt-get update -y
-              apt-get install -y \
+            arm64v8/alpine:3.19 \
+            /bin/sh -c "
+              set -eux
+
+              # 安装编译依赖
+              apk add --no-cache \
                 gcc \
                 g++ \
                 make \
+                musl-dev \
+                talloc-dev \
                 libarchive-dev \
-                libtalloc-dev \
                 uthash-dev \
                 binutils \
                 file
 
+              # 禁用 seccomp（如果 SECCOMP=0）
               if [ \$SECCOMP -eq 0 ]; then
                 export PROOT_NO_SECCOMP=1
               fi
 
+              # 静态编译
               make -C src proot care \
-                  LDFLAGS='-static'
-              file src/proot
+                LDFLAGS='-static'
+
+              # 验证静态链接
+              file src/proot | grep 'statically linked'
+              ls -la src/proot src/care
             "
 
       - name: Upload
