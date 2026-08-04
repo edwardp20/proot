@@ -16,30 +16,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y \
-            gcc-aarch64-linux-gnu \
-            g++-aarch64-linux-gnu \
-            libarchive-dev \
-            libtalloc-dev \
-            uthash-dev \
-            binutils \
-            binutils-aarch64-linux-gnu
-
-      - name: Build
+      - name: Build in Docker
         env:
-          # SECCOMP=1 时启用，SECCOMP=0 时禁用
-          PROOT_NO_SECCOMP: ${{ matrix.SECCOMP == '0' && '1' || '' }}
+          SECCOMP: ${{ matrix.SECCOMP }}
         run: |
-          # 注意：交叉编译 aarch64 可能需要调整 Makefile
-          # loader.elf 和 loader-m32.elf 是 x86 的，可能需要单独编译
-          make -C src loader.elf loader-m32.elf build.h
-          make -C src proot care \
-            CC=aarch64-linux-gnu-gcc \
-            CXX=aarch64-linux-gnu-g++ \
-            LD=aarch64-linux-gnu-ld
+          docker run --rm \
+            -v $PWD:/workspace \
+            -w /workspace \
+            -e SECCOMP=$SECCOMP \
+            arm64v8/ubuntu:22.04 \
+            /bin/bash -c "
+              apt-get update -y
+              apt-get install -y \
+                gcc \
+                g++ \
+                make \
+                libarchive-dev \
+                libtalloc-dev \
+                uthash-dev \
+                binutils \
+                file
+
+              # 编译
+              if [ \$SECCOMP -eq 0 ]; then
+                export PROOT_NO_SECCOMP=1
+              fi
+
+              make -C src proot care
+
+              # 检查架构
+              file src/proot
+            "
 
       - name: Upload
         uses: actions/upload-artifact@v4
@@ -48,5 +55,3 @@ jobs:
           path: |
             src/proot
             src/care
-            src/loader.elf
-            src/loader-m32.elf
