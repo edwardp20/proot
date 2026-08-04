@@ -18,26 +18,28 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -qq \
+          sudo apt-get update -y
+          sudo apt-get install -y \
             gcc-aarch64-linux-gnu \
             g++-aarch64-linux-gnu \
             libarchive-dev \
             libtalloc-dev \
             uthash-dev \
-      - name: Install binutils
-          run: |
-            sudo apt-get install -qq binutils binutils-aarch64-linux-gnu
+            binutils \
+            binutils-aarch64-linux-gnu
 
       - name: Build
         env:
+          # SECCOMP=1 时启用，SECCOMP=0 时禁用
           PROOT_NO_SECCOMP: ${{ matrix.SECCOMP == '0' && '1' || '' }}
         run: |
+          # 注意：交叉编译 aarch64 可能需要调整 Makefile
+          # loader.elf 和 loader-m32.elf 是 x86 的，可能需要单独编译
           make -C src loader.elf loader-m32.elf build.h
           make -C src proot care \
-          CC=aarch64-linux-gnu-gcc \
-          CXX=aarch64-linux-gnu-g++ \
-
+            CC=aarch64-linux-gnu-gcc \
+            CXX=aarch64-linux-gnu-g++ \
+            LD=aarch64-linux-gnu-ld
 
       - name: Upload
         uses: actions/upload-artifact@v4
