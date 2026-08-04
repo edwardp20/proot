@@ -44,6 +44,11 @@ jobs:
                 binutils \
                 file \
                 linux-headers
+              apk add bsd-compat-headers
+              apk add --no-cache \
+              libseccomp-dev \
+              libseccomp-static \
+              build-base
 
               # 禁用 seccomp（如果 SECCOMP=0）
               if [ \$SECCOMP -eq 0 ]; then
