@@ -42,7 +42,8 @@ jobs:
                 libarchive-dev \
                 uthash-dev \
                 binutils \
-                file
+                file \
+                linux-headers
 
               # 禁用 seccomp（如果 SECCOMP=0）
               if [ \$SECCOMP -eq 0 ]; then
