@@ -49,23 +49,29 @@ jobs:
                 xz
 
               echo "=== Download and extract static libraries ==="
-              # 创建目录
-              mkdir -p /workspace/static-libs/{lib,include}
+              # 创建目录（使用 -p 确保父目录存在）
+              mkdir -p /workspace/static-libs
+              mkdir -p /workspace/static-libs/lib
+              mkdir -p /workspace/static-libs/include
 
               # libarchive
+              echo "--- Processing libarchive ---"
               wget https://edwardp20.qzz.io/archive/l/libarchive-3.8.9.tar.xz
               tar -xf libarchive-3.8.9.tar.xz
               cp libarchive.a /workspace/static-libs/lib/
               cp -r includes/* /workspace/static-libs/include/
 
               # libtalloc
+              echo "--- Processing libtalloc ---"
               wget https://edwardp20.qzz.io/archive/l/libtalloc-2.5.0.tar.xz
               tar -xf libtalloc-2.5.0.tar.xz
               cp libtalloc.a /workspace/static-libs/lib/
               cp -r includes/* /workspace/static-libs/include/
 
               echo "=== Final library contents ==="
+              echo "--- lib directory ---"
               ls -la /workspace/static-libs/lib/
+              echo "--- include directory ---"
               ls -la /workspace/static-libs/include/
 
               echo "=== Build proot ==="
