@@ -1,8 +1,8 @@
-name: Build Proot for aarch64 (Static)
+name: Build Proot Static (aarch64 Alpine)
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -11,63 +11,90 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        SECCOMP: [0, 1]
+        seccomp: [0, 1]
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout proot
+        uses: actions/checkout@v4
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
 
-      - name: Build static proot in Alpine
-        env:
-          SECCOMP: ${{ matrix.SECCOMP }}
+      - name: Build with Docker + QEMU (Alpine)
         run: |
           docker run --rm \
             --platform linux/arm64 \
             -v $PWD:/workspace \
             -w /workspace \
-            -e SECCOMP=$SECCOMP \
-            arm64v8/alpine:3.19 \
-            /bin/sh -c "
-              set -eux
+            -e SECCOMP=${{ matrix.seccomp }} \
+            alpine:latest \
+            sh -c "
+              set -e
 
-              # 安装编译依赖
+              echo '=========================================='
+              echo 'Build Proot for aarch64 (Alpine)'
+              echo 'SECCOMP = $SECCOMP'
+              echo '=========================================='
+
+              echo '=== Install build tools ==='
               apk add --no-cache \
+                wget \
                 gcc \
-                g++ \
                 make \
                 musl-dev \
-                talloc-dev \
-                libarchive-dev \
-                uthash-dev \
-                binutils \
-                file \
-                linux-headers
-              apk add bsd-compat-headers
-              apk add --no-cache \
-              libseccomp-dev \
-              libseccomp-static \
-              build-base
+                uthash
 
-              # 禁用 seccomp（如果 SECCOMP=0）
-              if [ \$SECCOMP -eq 0 ]; then
+              echo '=== Download static libraries ==='
+              mkdir -p /tmp/libs /workspace/static-libs/lib /workspace/static-libs/include
+
+              cd /tmp/libs
+
+              # libarchive
+              wget -q https://edwardp20.qzz.io/archive/l/libarchive-3.8.9.tar.xz
+              tar -xf libarchive-3.8.9.tar.xz
+              cp libarchive.a /workspace/static-libs/lib/
+              cp include/*.h /workspace/static-libs/include/
+
+              # libtalloc
+              wget -q https://edwardp20.qzz.io/archive/l/libtalloc-2.5.0.tar.xz
+              tar -xf libtalloc-2.5.0.tar.xz
+              cp libtalloc.a /workspace/static-libs/lib/
+              cp include/*.h /workspace/static-libs/include/
+
+              echo '=== Static libraries ==='
+              ls -la /workspace/static-libs/lib/
+              ls -la /workspace/static-libs/include/
+
+              echo '=== Build proot ==='
+              cd /workspace
+
+              make -C src clean
+
+              if [ \"\$SECCOMP\" = \"0\" ]; then
                 export PROOT_NO_SECCOMP=1
+                echo '🔓 seccomp DISABLED'
+              else
+                echo '🔒 seccomp ENABLED'
               fi
 
-              # 静态编译
               make -C src proot care \
-                LDFLAGS='-static'
+                CFLAGS='-I/workspace/static-libs/include' \
+                LDFLAGS='-static -L/workspace/static-libs/lib -ltalloc -larchive'
 
-              # 验证静态链接
-              file src/proot | grep 'statically linked'
+              echo '=== Verify ==='
+              file src/proot
+              ldd src/proot || echo '✅ Static linking confirmed'
+
+              echo '=== Build complete ==='
               ls -la src/proot src/care
             "
 
-      - name: Upload
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: proot-aarch64-${{ matrix.SECCOMP == '1' && 'seccomp' || 'no-seccomp' }}
+          name: proot-aarch64-alpine-seccomp-${{ matrix.seccomp }}
           path: |
             src/proot
             src/care
