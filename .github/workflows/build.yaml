@@ -46,32 +46,26 @@ jobs:
                 musl-dev \
                 uthash
 
-            echo '=== Download static libraries ==='
-            mkdir -p /tmp/libs /workspace/static-libs/lib /workspace/static-libs/include
-            
-            cd /tmp/libs
-            
-            wget -q https://edwardp20.qzz.io/archive/l/libarchive-3.8.9.tar.xz
-            tar -xf libarchive-3.8.9.tar.xz
-            
-            # 进入解压目录
-            cd libarchive-3.8.9
-            cp libarchive.a /workspace/static-libs/lib/
-            cp -r includes/* /workspace/static-libs/include/ 2>/dev/null || echo "No includes directory"
-            
-            cd /tmp/libs
-            
-            wget -q https://edwardp20.qzz.io/archive/l/libtalloc-2.5.0.tar.xz
-            tar -xf libtalloc-2.5.0.tar.xz
-            
-            cd libtalloc-2.5.0
-            cp libtalloc.a /workspace/static-libs/lib/
-            cp -r includes/* /workspace/static-libs/include/ 2>/dev/null || echo "No includes directory"
-            
-            echo "=== Libraries ==="
-            ls -la /workspace/static-libs/lib/
-            echo "=== Headers ==="
-            ls -la /workspace/static-libs/include/
+ echo '=== 下载并解压静态库 ==='
+# 下载并解压
+mkdir -p a
+wget https://edwardp20.qzz.io/archive/l/libarchive-3.8.9.tar.xz
+tar -xf libarchive-3.8.9.tar.xz -C a
+mkdir -p b
+wget https://edwardp20.qzz.io/archive/l/libtalloc-2.5.0.tar.xz
+tar -xf libtalloc-2.5.0.tar.xz -C b
+
+
+# 自动查找并复制 .a 和 .h 文件
+echo "=== 复制静态库和头文件 ==="
+cp a/includes/* /workspace/static-libs/includes/
+cp b/includes/* /workspace/static-libs/include/
+cp b/*.a /workspace/static-libs/lib/
+cp a/*.a /workspace/static-libs/lib/
+
+echo "=== 最终结果 ==="
+ls -la /workspace/static-libs/lib/
+ls -la /workspace/static-libs/include/
 
               echo '=== Build proot ==='
               cd /workspace
