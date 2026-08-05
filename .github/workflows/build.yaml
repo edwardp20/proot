@@ -49,30 +49,20 @@ jobs:
                 xz
 
               echo "=== Download and extract static libraries ==="
-              # 创建目录结构
+              # 创建目录
               mkdir -p /workspace/static-libs/{lib,include}
-              
-              # 下载并解压 libarchive
-              wget https://edwardp20.qzz.io/archive/l/libarchive-3.8.9.tar.xz
-              mkdir -p archive_build
-              tar -xf libarchive-3.8.9.tar.xz -C archive_build
-              cd archive_build/libarchive-3.8.9
-              
-              # 复制 libarchive 的文件
-              cp .libs/libarchive.a /workspace/static-libs/lib/ || true
-              find . -name "*.h" -exec cp {} /workspace/static-libs/include/ \;
-              cd /workspace
 
-              # 下载并解压 libtalloc
+              # libarchive
+              wget https://edwardp20.qzz.io/archive/l/libarchive-3.8.9.tar.xz
+              tar -xf libarchive-3.8.9.tar.xz
+              cp libarchive.a /workspace/static-libs/lib/
+              cp -r includes/* /workspace/static-libs/include/
+
+              # libtalloc
               wget https://edwardp20.qzz.io/archive/l/libtalloc-2.5.0.tar.xz
-              mkdir -p talloc_build
-              tar -xf libtalloc-2.5.0.tar.xz -C talloc_build
-              cd talloc_build/libtalloc-2.5.0
-              
-              # 复制 libtalloc 的文件
-              cp libtalloc.a /workspace/static-libs/lib/ || true
-              find . -name "*.h" -exec cp {} /workspace/static-libs/include/ \;
-              cd /workspace
+              tar -xf libtalloc-2.5.0.tar.xz
+              cp libtalloc.a /workspace/static-libs/lib/
+              cp -r includes/* /workspace/static-libs/include/
 
               echo "=== Final library contents ==="
               ls -la /workspace/static-libs/lib/
