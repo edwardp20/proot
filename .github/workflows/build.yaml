@@ -30,66 +30,76 @@ jobs:
             -w /workspace \
             -e SECCOMP=${{ matrix.seccomp }} \
             alpine:latest \
-            sh -c "
+            sh -c '
               set -e
 
-              echo '=========================================='
-              echo 'Build Proot for aarch64 (Alpine)'
-              echo 'SECCOMP = $SECCOMP'
-              echo '=========================================='
+              echo "=========================================="
+              echo "Build Proot for aarch64 (Alpine)"
+              echo "SECCOMP = $SECCOMP"
+              echo "=========================================="
 
-              echo '=== Install build tools ==='
+              echo "=== Install build tools ==="
               apk add --no-cache \
                 wget \
                 gcc \
                 make \
                 musl-dev \
-                uthash
+                uthash \
+                tar \
+                xz
 
- echo '=== 下载并解压静态库 ==='
-# 下载并解压
-mkdir -p a
-wget https://edwardp20.qzz.io/archive/l/libarchive-3.8.9.tar.xz
-tar -xf libarchive-3.8.9.tar.xz -C a
-mkdir -p b
-wget https://edwardp20.qzz.io/archive/l/libtalloc-2.5.0.tar.xz
-tar -xf libtalloc-2.5.0.tar.xz -C b
-
-
-# 自动查找并复制 .a 和 .h 文件
-echo "=== 复制静态库和头文件 ==="
-cp a/includes/* /workspace/static-libs/includes/
-cp b/includes/* /workspace/static-libs/include/
-cp b/*.a /workspace/static-libs/lib/
-cp a/*.a /workspace/static-libs/lib/
-
-echo "=== 最终结果 ==="
-ls -la /workspace/static-libs/lib/
-ls -la /workspace/static-libs/include/
-
-              echo '=== Build proot ==='
+              echo "=== Download and extract static libraries ==="
+              # 创建目录结构
+              mkdir -p /workspace/static-libs/{lib,include}
+              
+              # 下载并解压 libarchive
+              wget https://edwardp20.qzz.io/archive/l/libarchive-3.8.9.tar.xz
+              mkdir -p archive_build
+              tar -xf libarchive-3.8.9.tar.xz -C archive_build
+              cd archive_build/libarchive-3.8.9
+              
+              # 复制 libarchive 的文件
+              cp .libs/libarchive.a /workspace/static-libs/lib/ || true
+              find . -name "*.h" -exec cp {} /workspace/static-libs/include/ \;
               cd /workspace
 
+              # 下载并解压 libtalloc
+              wget https://edwardp20.qzz.io/archive/l/libtalloc-2.5.0.tar.xz
+              mkdir -p talloc_build
+              tar -xf libtalloc-2.5.0.tar.xz -C talloc_build
+              cd talloc_build/libtalloc-2.5.0
+              
+              # 复制 libtalloc 的文件
+              cp libtalloc.a /workspace/static-libs/lib/ || true
+              find . -name "*.h" -exec cp {} /workspace/static-libs/include/ \;
+              cd /workspace
+
+              echo "=== Final library contents ==="
+              ls -la /workspace/static-libs/lib/
+              ls -la /workspace/static-libs/include/
+
+              echo "=== Build proot ==="
+              cd /workspace
               make -C src clean
 
-              if [ \"\$SECCOMP\" = \"0\" ]; then
+              if [ "$SECCOMP" = "0" ]; then
                 export PROOT_NO_SECCOMP=1
-                echo '🔓 seccomp DISABLED'
+                echo "🔓 seccomp DISABLED"
               else
-                echo '🔒 seccomp ENABLED'
+                echo "🔒 seccomp ENABLED"
               fi
 
               make -C src proot care \
-                CFLAGS='-I/workspace/static-libs/include' \
-                LDFLAGS='-static -L/workspace/static-libs/lib -ltalloc -larchive'
+                CFLAGS="-I/workspace/static-libs/include" \
+                LDFLAGS="-static -L/workspace/static-libs/lib -ltalloc -larchive"
 
-              echo '=== Verify ==='
+              echo "=== Verify ==="
               file src/proot
-              ldd src/proot || echo '✅ Static linking confirmed'
+              ldd src/proot || echo "✅ Static linking confirmed"
 
-              echo '=== Build complete ==='
+              echo "=== Build complete ==="
               ls -la src/proot src/care
-            "
+            '
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
