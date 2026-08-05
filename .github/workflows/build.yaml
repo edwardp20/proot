@@ -46,26 +46,32 @@ jobs:
                 musl-dev \
                 uthash
 
-              echo '=== Download static libraries ==='
-              mkdir -p /tmp/libs /workspace/static-libs/lib /workspace/static-libs/include
-
-              cd /tmp/libs
-
-              # libarchive
-              wget -q https://edwardp20.qzz.io/archive/l/libarchive-3.8.9.tar.xz
-              tar -xf libarchive-3.8.9.tar.xz
-              cp libarchive.a /workspace/static-libs/lib/
-              cp include/*.h /workspace/static-libs/include/
-
-              # libtalloc
-              wget -q https://edwardp20.qzz.io/archive/l/libtalloc-2.5.0.tar.xz
-              tar -xf libtalloc-2.5.0.tar.xz
-              cp libtalloc.a /workspace/static-libs/lib/
-              cp include/*.h /workspace/static-libs/include/
-
-              echo '=== Static libraries ==='
-              ls -la /workspace/static-libs/lib/
-              ls -la /workspace/static-libs/include/
+            echo '=== Download static libraries ==='
+            mkdir -p /tmp/libs /workspace/static-libs/lib /workspace/static-libs/include
+            
+            cd /tmp/libs
+            
+            wget -q https://edwardp20.qzz.io/archive/l/libarchive-3.8.9.tar.xz
+            tar -xf libarchive-3.8.9.tar.xz
+            
+            # 进入解压目录
+            cd libarchive-3.8.9
+            cp libarchive.a /workspace/static-libs/lib/
+            cp -r includes/* /workspace/static-libs/include/ 2>/dev/null || echo "No includes directory"
+            
+            cd /tmp/libs
+            
+            wget -q https://edwardp20.qzz.io/archive/l/libtalloc-2.5.0.tar.xz
+            tar -xf libtalloc-2.5.0.tar.xz
+            
+            cd libtalloc-2.5.0
+            cp libtalloc.a /workspace/static-libs/lib/
+            cp -r includes/* /workspace/static-libs/include/ 2>/dev/null || echo "No includes directory"
+            
+            echo "=== Libraries ==="
+            ls -la /workspace/static-libs/lib/
+            echo "=== Headers ==="
+            ls -la /workspace/static-libs/include/
 
               echo '=== Build proot ==='
               cd /workspace
