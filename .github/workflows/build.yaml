@@ -47,6 +47,7 @@ jobs:
                 uthash \
                 tar \
                 linux-headers \
+                xz
 
               echo "=== Download and extract static libraries ==="
               # 创建目录（使用 -p 确保父目录存在）
